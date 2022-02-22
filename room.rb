@@ -130,7 +130,18 @@ def allocate!(rooms, obs)
 end
 
 def deallocate!(rooms)
-  rooms.select { |r| !r.empty? }.last.pop
+  rooms.reject { |r| r.empty? }.last.pop
+end
+
+
+def repeated_obs?(rooms)
+
+  return false if rooms.none? { |r| r.length == 2 }
+  return false if rooms.one? { |r| r.length == 2 }
+
+  sorted_rooms = rooms.reject { |r| r.empty? || r.length == 1 }.map(&:sort)
+
+  sorted_rooms.length != sorted_rooms.uniq.length
 end
 
 def is_safe?(rooms)
@@ -144,34 +155,54 @@ def is_safe?(rooms)
     return false
   end
 
-  # # rooms are not valid if there is a repeated observer-observer pair
-  # if rooms.(&:empty?).map(&:sort).uniq != rooms.reject(&:empty?).map(&:sort)
-  #   return false
-  # end
+  def next_possible(rooms)
+    last_room = rooms.find { |r| r.length == 1 }
+    last_room[0] += 1
+  end
+
+  # rooms are not valid if there is a repeated observer-observer pair
+  if repeated_obs?(rooms)
+    return false
+  end
 
   return true
 end
 
-def solve(rooms)
+def solve(rooms, first_obs = 1, last_obs = 4)
 
 
-  binding.pry
+  # binding.pry
+
 
   # Return the rooms when all observers have been allocated
+  # binding.pry if rooms == [[1, 2], [1, 4], [], []]
+
   return rooms if full?(rooms)
 
   # try all the possible observers for each of the rooms
-  (1..4).each do |obs|
-    allocate!(rooms,obs)
+  (first_obs..last_obs).each_with_index do |obs|
+    allocate!(rooms, obs)
     # check the boundary conditions
     if is_safe?(rooms)
       return solve(rooms)
-    end
+    else
+      if obs == last_obs
+        # Now I have a problem.
+        # I tried to allocate the last obs and it was not valid.
+        # This will only happen when I have a couple
+        deallocate!(rooms)
+        next_possible(rooms)
 
-    deallocate!(rooms)
+        return solve(rooms)
+      end
+      deallocate!(rooms)
+      return solve(rooms, first_obs + 1 , 4)
+    end
   end
+
+
 
 end
 
 
-p solve([[], [], [], []])
+p solve([[], [], [], [], []])
